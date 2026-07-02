@@ -59,7 +59,12 @@ SYSTEM = (
     "Output ONLY the post text."
 )
 
+LLM_ERR = ""
+
 def llm(messages):
+    global LLM_ERR
+    if not GROQ_API_KEY and not NVIDIA_API_KEY:
+        LLM_ERR = "no LLM key set (GROQ_API_KEY / NVIDIA_API_KEY both empty)"
     # try Groq first
     if GROQ_API_KEY:
         try:
@@ -68,6 +73,7 @@ def llm(messages):
                             {"Authorization": f"Bearer {GROQ_API_KEY}"})
             return out["choices"][0]["message"]["content"].strip()
         except Exception as e:
+            LLM_ERR = f"Groq error: {e}"
             print("Groq failed, trying NVIDIA:", e)
     # fallback: NVIDIA NIM (free, OpenAI-compatible)
     if NVIDIA_API_KEY:
@@ -77,6 +83,7 @@ def llm(messages):
                             {"Authorization": f"Bearer {NVIDIA_API_KEY}"})
             return out["choices"][0]["message"]["content"].strip()
         except Exception as e:
+            LLM_ERR = f"NVIDIA error: {e}"
             print("NVIDIA failed:", e)
     return ""
 
@@ -114,7 +121,9 @@ def main():
 
     post = clean(llm([{"role": "system", "content": SYSTEM}, {"role": "user", "content": data}]))
     if not post:
-        print("no post generated (no working LLM key?)"); return
+        print("no post generated:", LLM_ERR)
+        post_telegram("[The Tape agent] Ran OK but couldn't generate a post. Reason: " + (LLM_ERR or "unknown"))
+        return
 
     stamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     print(f"[{stamp}] POST:\n{post}\n")
