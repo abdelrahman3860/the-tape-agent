@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Random human-like delay (0-8 min)
-        run: sleep $((RANDOM % 480))
+      - name: Small human-like delay
+        run: sleep $((RANDOM % 20))
 
       - name: Run The Tape agent
         env:
