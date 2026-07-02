@@ -1,0 +1,41 @@
+name: The Tape Agent
+
+# Runs free on GitHub Actions. Low-volume + jittered = safe.
+on:
+  schedule:
+    # 4x/day (UTC). Human-paced, well within GitHub's free minutes.
+    - cron: "0 8,13,17,21 * * *"
+  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write         # so it can commit the posts_log.md
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Random human-like delay (0-8 min)
+        run: sleep $((RANDOM % 480))
+
+      - name: Run The Tape agent
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python tape_agent.py
+
+      - name: Save the post log
+        run: |
+          git config user.name "the-tape-agent"
+          git config user.email "agent@thetape.local"
+          git add posts_log.md || true
+          git commit -m "log: new post" || echo "nothing to commit"
+          git push || echo "nothing to push"
